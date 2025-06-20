@@ -13,27 +13,26 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CreditoController {
 
-    private final CreditoService creditoService;
+  private final CreditoService creditoService;
 
-    @GetMapping("/{numeroNfse}")
-    public ResponseEntity<List<CreditoDTO>> buscarCreditosPorNfse(@PathVariable String numeroNfse) {
-        if (numeroNfse == null || numeroNfse.trim().isEmpty()) {
-            throw new IllegalArgumentException("Número da NFS-e é obrigatório");
-        }
-
-        List<CreditoDTO> creditos = creditoService.buscarCreditosPorNfse(numeroNfse);
-        return ResponseEntity.ok(creditos);
+  @GetMapping("/{numeroNfse}")
+  public ResponseEntity<List<CreditoDTO>> buscarCreditosPorNfse(@PathVariable String numeroNfse) {
+    if (numeroNfse == null || numeroNfse.trim().isEmpty()) {
+      throw new IllegalArgumentException("Número da NFS-e é obrigatório");
     }
 
-    @GetMapping("/credito/{numeroCredito}")
-    public ResponseEntity<CreditoDTO> buscarCreditoPorNumero(
-            @PathVariable String numeroCredito) {
-        CreditoDTO credito = creditoService.buscarCreditoPorNumero(numeroCredito);
-        return ResponseEntity.ok(credito);
-    }
+    List<CreditoDTO> creditos = creditoService.buscarCreditosPorNfse(numeroNfse);
+    return ResponseEntity.ok(creditos);
+  }
 
-    @GetMapping("/health")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok("API de Créditos funcionando!");
-    }
+  @GetMapping("/credito/{numeroCredito}")
+  public ResponseEntity<CreditoDTO> buscarCreditoPorNumero(@PathVariable String numeroCredito) {
+    CreditoDTO credito = creditoService.buscarCreditoPorNumero(numeroCredito);
+    return ResponseEntity.ok(credito);
+  }
+
+  @GetMapping("/status")
+  public ResponseEntity<String> status() {
+    return ResponseEntity.ok("API de Créditos funcionando!");
+  }
 }
