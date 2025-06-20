@@ -8,7 +8,7 @@
 
 ## 📋 Descrição
 
-API REST desenvolvida em Spring Boot para gerenciamento de créditos fiscais. O sistema permite consultar créditos constituídos associados a Notas Fiscais de Serviço Eletrônica (NFS-e) e fornece funcionalidades para busca e validação de dados fiscais.
+API REST desenvolvida em Spring Boot para consulta de créditos fiscais. O sistema permite consultar créditos constituídos associados a Notas Fiscais de Serviço Eletrônica (NFS-e) e fornece funcionalidades para busca e validação de dados fiscais.
 
 ## 🚀 Tecnologias Utilizadas
 
