@@ -5,21 +5,44 @@
 [![Maven](https://img.shields.io/badge/Maven-3.11.0-blue.svg)](https://maven.apache.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-13+-blue.svg)](https://www.postgresql.org/)
 [![Flyway](https://img.shields.io/badge/Flyway-9.22.3-yellow.svg)](https://flywaydb.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
 
 ## 📋 Descrição
 
-API REST desenvolvida em Spring Boot para consulta de créditos fiscais. O sistema permite consultar créditos constituídos associados a Notas Fiscais de Serviço Eletrônica (NFS-e) e fornece funcionalidades para busca e validação de dados fiscais.
+API REST desenvolvida em Spring Boot para consulta de créditos fiscais. O sistema permite consultar créditos constituídos associados a Notas Fiscais de Serviço Eletrônica (NFS-e) e fornece funcionalidades para busca e validação de dados fiscais, além de autenticação JWT e gerenciamento de usuários.
 
 ## 🚀 Tecnologias Utilizadas
 
 - **Java 17** - Linguagem de programação
 - **Spring Boot 3.3.12** - Framework para desenvolvimento de aplicações Java
 - **Spring Data JPA** - Persistência de dados
+- **Spring Security** - Segurança e autenticação
 - **PostgreSQL** - Banco de dados relacional
 - **Flyway** - Migração de banco de dados
 - **MapStruct** - Mapeamento entre objetos
 - **Lombok** - Redução de código boilerplate
 - **Maven** - Gerenciamento de dependências
+- **Kafka** - Mensageria e eventos
+- **JWT** - Autenticação baseada em tokens
+- **OpenAPI/Swagger** - Documentação da API
+
+## 🌐 Informações de Acesso
+
+### Portas e URLs
+
+| Serviço           | Porta | URL                                       | Descrição               |
+| ----------------- | ----- | ----------------------------------------- | ----------------------- |
+| **API Principal** | 8050  | http://localhost:8050                     | API REST principal      |
+| **Health Check**  | 8050  | http://localhost:8050/api/creditos/status | Status da aplicação     |
+| **Swagger UI**    | 8050  | http://localhost:8050/swagger-ui.html     | Documentação interativa |
+| **PostgreSQL**    | 5432  | localhost:5432                            | Banco de dados          |
+| **Kafka**         | 9092  | localhost:9092                            | Broker de mensagens     |
+
+### Credenciais Padrão
+
+- **PostgreSQL**: `postgres` / `postgres`
+- **API**: Sem autenticação para endpoints públicos
+- **JWT**: Necessário para endpoints protegidos
 
 ## 📁 Estrutura do Projeto
 
@@ -28,12 +51,39 @@ src/
 ├── main/
 │   ├── java/com/desafio/credito/
 │   │   ├── controller/          # Controladores REST
+│   │   │   ├── CreditoController.java
+│   │   │   └── UsuarioController.java
 │   │   ├── service/             # Lógica de negócio
+│   │   │   ├── CreditoService.java
+│   │   │   ├── UsuarioService.java
+│   │   │   └── CreditoEventPublisher.java
 │   │   ├── repository/          # Acesso a dados
+│   │   │   ├── CreditoRepository.java
+│   │   │   └── UsuarioRepository.java
 │   │   ├── entity/              # Entidades JPA
+│   │   │   ├── Credito.java
+│   │   │   └── Usuario.java
 │   │   ├── dto/                 # Objetos de transferência
+│   │   │   ├── CreditoDTO.java
+│   │   │   ├── UsuarioDTO.java
+│   │   │   ├── LoginRequestDTO.java
+│   │   │   └── LoginResponseDTO.java
 │   │   ├── mapper/              # Mapeadores MapStruct
+│   │   │   ├── CreditoMapper.java
+│   │   │   └── UsuarioMapper.java
+│   │   ├── config/              # Configurações
+│   │   │   ├── SecurityConfig.java
+│   │   │   ├── JwtUtil.java
+│   │   │   ├── OpenApiConfig.java
+│   │   │   └── KafkaTopicConfig.java
 │   │   ├── exception/           # Tratamento de exceções
+│   │   │   ├── GlobalExceptionHandler.java
+│   │   │   ├── ErrorResponse.java
+│   │   │   └── ResourceNotFoundException.java
+│   │   ├── event/               # Eventos Kafka
+│   │   │   ├── CreditoConsultaEvent.java
+│   │   │   ├── EnumStatusConsulta.java
+│   │   │   └── EnunTipoConsulta.java
 │   │   └── JavawebApplication.java
 │   └── resources/
 │       ├── application.yml      # Configurações da aplicação
@@ -43,6 +93,7 @@ src/
 ├── setup.sh                     # Script de setup (Linux/macOS)
 ├── setup.bat                    # Script de setup (Windows)
 ├── env.example                  # Exemplo de variáveis de ambiente
+├── Dockerfile                   # Configuração Docker
 └── pom.xml                      # Configuração do Maven
 ```
 
@@ -52,6 +103,7 @@ src/
 - **Maven 3.6+**
 - **PostgreSQL 13+**
 - **Git**
+- **Docker** (opcional, para execução em container)
 
 ## ⚙️ Configuração do Ambiente
 
@@ -80,7 +132,7 @@ setup.bat
 
 ```bash
 git clone <url-do-repositorio>
-cd backend
+cd api-creditos-fiscais
 ```
 
 #### 2. Configuração do Banco de Dados
@@ -110,6 +162,13 @@ Edite o arquivo `.env` com suas configurações:
 DATASOURCE_URL=jdbc:postgresql://localhost:5432/postgres
 DATASOURCE_USERNAME=postgres
 DATASOURCE_PASSWORD=postgres
+
+# Porta da aplicação
+SERVER_PORT=8050
+
+# Configurações de Log
+LOGGING_LEVEL_ROOT=INFO
+LOGGING_LEVEL_COM_DESAFIO=DEBUG
 ```
 
 #### 4. Executando a Aplicação
@@ -134,13 +193,75 @@ mvn clean package
 java -jar target/javaweb-0.0.1-SNAPSHOT.jar
 ```
 
-A aplicação estará disponível em: `http://localhost:8080`
+A aplicação estará disponível em: `http://localhost:8050`
 
 ## 📚 Documentação da API
 
 ### Endpoints Disponíveis
 
-#### 1. Buscar Créditos por NFS-e
+#### 🔐 Autenticação
+
+##### Login
+
+```http
+POST /usuarios/login
+Content-Type: application/json
+
+{
+  "login": "joaosilva",
+  "senha": "123456"
+}
+```
+
+**Resposta de Sucesso (200):**
+
+```json
+{
+  "nome": "João da Silva",
+  "login": "joaosilva",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+}
+```
+
+#### 👥 Usuários
+
+##### Cadastrar Usuário
+
+```http
+POST /usuarios
+Content-Type: application/json
+
+{
+  "nome": "João da Silva",
+  "login": "joaosilva",
+  "senha": "123456"
+}
+```
+
+##### Listar Usuários
+
+```http
+GET /usuarios
+Authorization: Bearer <token>
+```
+
+##### Buscar Usuário por ID
+
+```http
+GET /usuarios/{id}
+Authorization: Bearer <token>
+```
+
+##### Deletar Usuário
+
+```http
+DELETE /usuarios/{id}
+Authorization: Bearer <token>
+```
+
+#### 💰 Créditos Fiscais
+
+##### Buscar Créditos por NFS-e
 
 ```http
 GET /api/creditos/{numeroNfse}
@@ -169,7 +290,7 @@ GET /api/creditos/{numeroNfse}
 ]
 ```
 
-#### 2. Buscar Crédito por Número
+##### Buscar Crédito por Número
 
 ```http
 GET /api/creditos/credito/{numeroCredito}
@@ -196,10 +317,10 @@ GET /api/creditos/credito/{numeroCredito}
 }
 ```
 
-#### 3. Health Check
+##### Health Check
 
 ```http
-GET /api/creditos/health
+GET /api/creditos/status
 ```
 
 **Resposta de Sucesso (200):**
@@ -211,7 +332,9 @@ API de Créditos funcionando!
 ### Códigos de Erro
 
 - **400 Bad Request**: Parâmetros inválidos ou em branco
-- **404 Not Found**: Crédito ou NFS-e não encontrado
+- **401 Unauthorized**: Token JWT inválido ou ausente
+- **404 Not Found**: Crédito, NFS-e ou usuário não encontrado
+- **409 Conflict**: Login já está em uso
 - **500 Internal Server Error**: Erro interno do servidor
 
 ## 🗄️ Estrutura do Banco de Dados
@@ -232,6 +355,15 @@ API de Créditos funcionando!
 | `valor_deducao`     | DECIMAL(15,2) | Valor das deduções               |
 | `base_calculo`      | DECIMAL(15,2) | Base de cálculo                  |
 
+### Tabela: `usuario`
+
+| Campo   | Tipo         | Descrição                        |
+| ------- | ------------ | -------------------------------- |
+| `id`    | BIGINT       | Chave primária (auto-incremento) |
+| `nome`  | VARCHAR(100) | Nome completo do usuário         |
+| `login` | VARCHAR(50)  | Login único do usuário           |
+| `senha` | VARCHAR(255) | Senha criptografada              |
+
 ## 🧪 Testes
 
 ### Executando os Testes
@@ -242,6 +374,9 @@ mvn test
 
 # Executar testes com relatório de cobertura
 mvn clean test jacoco:report
+
+# Executar testes de integração
+mvn test -Dtest=*IT
 ```
 
 ## 🔧 Desenvolvimento
@@ -263,6 +398,10 @@ mvn flyway:migrate
 
 # Limpar e resetar banco de dados
 mvn flyway:clean flyway:migrate
+
+# Gerar documentação OpenAPI
+mvn spring-boot:run
+# Acesse: http://localhost:8050/swagger-ui.html
 ```
 
 ### Configurações de Desenvolvimento
@@ -272,26 +411,87 @@ A aplicação está configurada com:
 - **Hot Reload**: Ativado via Spring Boot DevTools
 - **SQL Logging**: Ativado para debug
 - **Flyway**: Migrações automáticas habilitadas
+- **Swagger UI**: Documentação interativa disponível
+
+## 🐳 Docker
+
+### Build da Imagem
+
+```bash
+docker build -t api-creditos-fiscais .
+```
+
+### Executar Container
+
+```bash
+docker run -p 8050:8050 \
+  -e DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/postgres \
+  -e DATASOURCE_USERNAME=postgres \
+  -e DATASOURCE_PASSWORD=postgres \
+  api-creditos-fiscais
+```
+
+### Docker Compose
+
+```yaml
+version: "3.8"
+services:
+  api:
+    build: .
+    ports:
+      - "8050:8050"
+    environment:
+      - DATASOURCE_URL=jdbc:postgresql://postgres:5432/postgres
+      - DATASOURCE_USERNAME=postgres
+      - DATASOURCE_PASSWORD=postgres
+    depends_on:
+      - postgres
+      - kafka
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  kafka:
+    image: obsidiandynamics/kafka
+    ports:
+      - "9092:9092"
+      - "2181:2181"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ZOOKEEPER_CONNECT: localhost:2181
+
+volumes:
+  postgres_data:
+```
 
 ## 📦 Deploy
-
-### Docker (Opcional)
-
-```dockerfile
-FROM openjdk:17-jdk-slim
-COPY target/javaweb-0.0.1-SNAPSHOT.jar app.jar
-EXPOSE 8080
-ENTRYPOINT ["java","-jar","/app.jar"]
-```
 
 ### Variáveis de Ambiente para Produção
 
 ```bash
 # Configurações de Produção
 SPRING_PROFILES_ACTIVE=prod
+SERVER_PORT=8050
 DATASOURCE_URL=jdbc:postgresql://prod-db:5432/creditos
 DATASOURCE_USERNAME=prod_user
 DATASOURCE_PASSWORD=prod_password
+LOGGING_LEVEL_ROOT=WARN
+SPRING_JPA_SHOW_SQL=false
+```
+
+### Build para Produção
+
+```bash
+mvn clean package -Pprod
+java -jar target/javaweb-0.0.1-SNAPSHOT.jar
 ```
 
 ## 🚀 Primeira Publicação no Git
@@ -306,27 +506,37 @@ Para fazer a primeira publicação no Git, consulte o arquivo [GIT_SETUP.md](GIT
 - Boas práticas
 - Solução de problemas comuns
 
-## 🤝 Contribuição
+## 🔍 Monitoramento e Logs
 
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+### Health Check
 
-## 📝 Licença
+```bash
+curl http://localhost:8050/api/creditos/status
+```
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+### Logs da Aplicação
 
-## 👥 Autores
+```bash
+# Ver logs em tempo real
+tail -f logs/application.log
 
-- **Seu Nome** - _Desenvolvimento inicial_ - [SeuGitHub](https://github.com/seugithub)
+# Filtrar logs de erro
+grep "ERROR" logs/application.log
+```
+
+### Métricas (se configurado)
+
+```bash
+curl http://localhost:8050/actuator/health
+curl http://localhost:8050/actuator/metrics
+```
 
 ## 🙏 Agradecimentos
 
 - Spring Boot Team
 - PostgreSQL Community
 - Flyway Team
+- Apache Kafka Community
 
 ## 📞 Suporte
 
@@ -335,4 +545,7 @@ Para suporte, envie um email para suporte@empresa.com ou abra uma issue no repos
 ---
 
 **Versão:** 0.0.1-SNAPSHOT  
-**Última atualização:** Dezembro 2024
+**Última atualização:** Dezembro 2024  
+**Porta padrão:** 8050  
+**Java:** 17  
+**Spring Boot:** 3.3.12

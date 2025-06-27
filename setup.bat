@@ -65,7 +65,7 @@ echo.
 echo 📚 Próximos passos:
 echo    1. Edite o arquivo .env com suas configurações
 echo    2. Execute: mvn spring-boot:run
-echo    3. Acesse: http://localhost:8080
+echo    3. Acesse: http://localhost:8050
 echo    4. Teste o endpoint: http://localhost:8080/api/creditos/health
 echo.
 echo 📖 Para mais informações, consulte o README.md
